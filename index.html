@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 1000px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #1f2937;
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #374151;
+        }
+        input[type="text"],
+        input[type="number"],
+        input[type="date"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1rem;
+            color: #374151;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="date"]:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+        button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-1px);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background-color: #2563eb;
+        }
+        .btn-delete {
+            background-color: #ef4444;
+            color: white;
+            border: none;
+        }
+        .btn-delete:hover:not(:disabled) {
+            background-color: #dc2626;
+        }
+        .message-box {
+            background-color: #dbeafe;
+            color: #1e40af;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #93c5fd;
+            display: none;
+        }
+        .message-box.show {
+            display: block;
+        }
+        .message-box.error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border-color: #fca5a5;
+        }
+        .flex-container {
+            display: flex;
+            gap: 15px;
+        }
+        .flex-container > div {
+            flex: 1;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px 15px;
+            border-bottom: 1px solid #e5e7eb;
+            white-space: nowrap;
+        }
+        th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            color: #4b5563;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+        tr:nth-child(even) {
+            background-color: #f3f4f6;
+        }
+        @media (max-width: 768px) {
+            .grid-cols-2 {
+                grid-template-columns: 1fr;
+            }
+            .grid-cols-3 {
+                grid-template-columns: 1fr;
+            }
+            .flex-container {
+                flex-direction: column;
+            }
+            .flex-container > div {
+                width: 100%;
+            }
+        }
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f4f6;
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-3xl font-bold text-center">Inventory Management System</h1>
+
+        <div id="messageBox" class="message-box"></div>
+
+        <form id="inventoryForm" class="mb-8 p-6 bg-gray-50 rounded-lg shadow-inner">
+            <h2 class="text-xl font-semibold mb-6 text-center" id="formTitle">Add New Tool / Update Existing Tool Details</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                <div>
+                    <label for="toolNo">Tool No. *</label>
+                    <input type="text" id="toolNo" placeholder="e.g., T-001" required>
+                </div>
+                <div>
+                    <label for="toolName">Tool Name</label>
+                    <input type="text" id="toolName" placeholder="e.g., Hammer">
+                </div>
+                <div>
+                    <label for="posNo">POS No</label>
+                    <input type="text" id="posNo" placeholder="e.g., P-123">
+                </div>
+                <div>
+                    <label for="tePartNo">TE Part No.</label>
+                    <input type="text" id="tePartNo" placeholder="e.g., TP-456">
+                </div>
+                <div>
+                    <label for="tfrNo">TFR No.</label>
+                    <input type="text" id="tfrNo" placeholder="e.g., TFR-789">
+                </div>
+                <div>
+                    <label for="description">Description</label>
+                    <input type="text" id="description" placeholder="e.g., Standard claw hammer">
+                </div>
+                <div>
+                    <label for="minQty">Min Qty</label>
+                    <input type="number" id="minQty" placeholder="e.g., 5" min="0">
+                </div>
+                <div>
+                    <label for="qtyBal">Qty Bal (Current)</label>
+                    <input type="number" id="qtyBal" placeholder="Calculated automatically" disabled>
+                </div>
+                <div>
+                    <label for="type">Type</label>
+                    <input type="text" id="type" placeholder="e.g., Hand Tool">
+                </div>
+                <div>
+                    <label for="received">Received By</label>
+                    <input type="text" id="received" placeholder="e.g., John Doe">
+                </div>
+                <div>
+                    <label for="inDate">In-Date</label>
+                    <input type="date" id="inDate">
+                </div>
+                <div>
+                    <label for="qtyIn">Qty In (Add to Stock)</label>
+                    <input type="number" id="qtyIn" placeholder="e.g., 2" min="0">
+                </div>
+            </div>
+            <div class="flex-container">
+                <button type="submit" class="btn-primary w-full" id="submitButton">
+                    <span id="submitButtonText">Process Tool</span>
+                    <span id="submitButtonLoader" class="loading ml-2" style="display: none;"></span>
+                </button>
+            </div>
+        </form>
+
+        <div class="mb-8 p-6 bg-red-50 rounded-lg shadow-inner">
+            <h2 class="text-xl font-semibold mb-6 text-center text-red-800">Process Tool Out Transaction / Remove Tool</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label for="outToolNo">Tool No. *</label>
+                    <input type="text" id="outToolNo" placeholder="e.g., T-001" required>
+                </div>
+                <div>
+                    <label for="outGivenTo">Given To</label>
+                    <input type="text" id="outGivenTo" placeholder="e.g., Jane Smith">
+                </div>
+                <div>
+                    <label for="outOutDate">Out-Date</label>
+                    <input type="date" id="outOutDate">
+                </div>
+                <div>
+                    <label for="outQtyOut">Qty Out (Reduce Stock)</label>
+                    <input type="number" id="outQtyOut" placeholder="Leave blank for complete removal" min="0">
+                    <small class="text-gray-600 text-sm">Leave blank to remove tool completely</small>
+                </div>
+            </div>
+            <button type="button" id="processOutButton" class="btn-delete w-full">
+                <span id="outButtonText">Process Out / Remove Tool</span>
+                <span id="outButtonLoader" class="loading ml-2" style="display: none;"></span>
+            </button>
+        </div>
+
+        <h2 class="text-2xl font-semibold mb-4 text-center">Current Inventory</h2>
+        <div class="overflow-x-auto rounded-lg shadow-md">
+            <table class="min-w-full bg-white">
+                <thead>
+                    <tr>
+                        <th>Tool No.</th>
+                        <th>Tool Name</th>
+                        <th>POS No</th>
+                        <th>TE Part No.</th>
+                        <th>TFR No.</th>
+                        <th>Description</th>
+                        <th>Min Qty</th>
+                        <th>Qty Bal</th>
+                        <th>Type</th>
+                        <th>Received</th>
+                        <th>In-Date</th>
+                        <th>Qty In</th>
+                        <th>Given To</th>
+                        <th>Out-Date</th>
+                        <th>Qty Out</th>
+                    </tr>
+                </thead>
+                <tbody id="inventoryTableBody">
+                    <tr><td colspan="15" class="text-center py-4 text-gray-500">Loading inventory...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="confirmationModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <p id="modalMessage" class="text-lg mb-4"></p>
+            <div class="modal-buttons">
+                <button id="modalConfirmBtn" class="btn-delete">Confirm</button>
+                <button id="modalCancelBtn" class="btn-primary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let inventoryData = [];
+        let modalResolve; 
+
+        const inventoryForm = document.getElementById('inventoryForm');
+        const submitButton = document.getElementById('submitButton');
+        const submitButtonText = document.getElementById('submitButtonText');
+        const submitButtonLoader = document.getElementById('submitButtonLoader');
+        const inventoryTableBody = document.getElementById('inventoryTableBody');
+        const messageBox = document.getElementById('messageBox');
+
+        const outToolNoInput = document.getElementById('outToolNo');
+        const outGivenToInput = document.getElementById('outGivenTo');
+        const outOutDateInput = document.getElementById('outOutDate');
+        const outQtyOutInput = document.getElementById('outQtyOut');
+        const processOutButton = document.getElementById('processOutButton');
+        const outButtonText = document.getElementById('outButtonText');
+        const outButtonLoader = document.getElementById('outButtonLoader');
+
+        const toolNoInput = document.getElementById('toolNo');
+        const toolNameInput = document.getElementById('toolName');
+        const posNoInput = document.getElementById('posNo');
+        const tePartNoInput = document.getElementById('tePartNo');
+        const tfrNoInput = document.getElementById('tfrNo');
+        const descriptionInput = document.getElementById('description');
+        const minQtyInput = document.getElementById('minQty');
+        const qtyBalInput = document.getElementById('qtyBal');
+        const typeInput = document.getElementById('type');
+        const receivedInput = document.getElementById('received');
+        const inDateInput = document.getElementById('inDate');
+        const qtyInInput = document.getElementById('qtyIn');
+
+        const confirmationModal = document.getElementById('confirmationModal');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+        const modalCancelBtn = document.getElementById('modalCancelBtn');
+
+        
+        function showConfirmationModal(message) {
+            return new Promise(resolve => {
+                modalResolve = resolve; 
+                modalMessage.textContent = message;
+                confirmationModal.classList.remove('hidden');
+
+                const handleConfirm = () => {
+                    confirmationModal.classList.add('hidden');
+                    modalConfirmBtn.removeEventListener('click', handleConfirm);
+                    modalCancelBtn.removeEventListener('click', handleCancel);
+                    resolve(true);
+                };
+
+                const handleCancel = () => {
+                    confirmationModal.classList.add('hidden');
+                    modalConfirmBtn.removeEventListener('click', handleConfirm);
+                    modalCancelBtn.removeEventListener('click', handleCancel);
+                    resolve(false);
+                };
+
+                modalConfirmBtn.addEventListener('click', handleConfirm);
+                modalCancelBtn.addEventListener('click', handleCancel);
+            });
+        }
+
+
+        
+        function formatDateOnly(dateValue) {
+            if (!dateValue) return '';
+            
+            // If it's already a string in 'YYYY-MM-DD' format
+            if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+                return dateValue;
+            }
+            
+            try {
+                const date = new Date(dateValue);
+                if (isNaN(date.getTime())) {
+                    // If Date object is invalid, return original value as string
+                    console.warn(`Could not parse date: ${dateValue}`);
+                    return String(dateValue);
+                }
+                
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            } catch (error) {
+                console.error("Error formatting date:", dateValue, error);
+                return String(dateValue); // Fallback to original string if error
+            }
+        }
+
+        function showMessage(message, isError = false) {
+            messageBox.textContent = message;
+            messageBox.className = 'message-box show ' + (isError ? 'error' : '');
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 5000); 
+        }
+
+        
+        function renderInventory() {
+            inventoryTableBody.innerHTML = '';
+            if (inventoryData.length === 0) {
+                inventoryTableBody.innerHTML = `<tr><td colspan="15" class="text-center py-4 text-gray-500">No tools in inventory. Add some above!</td></tr>`;
+                return;
+            }
+
+            inventoryData.forEach((item) => {
+                const row = inventoryTableBody.insertRow();
+                // Apply a red background if Qty Bal is below Min Qty
+                const qtyBalClass = (item.qtybal !== undefined && item.minqty !== undefined && item.qtybal < item.minqty) ? 'text-red-600 font-bold' : '';
+
+                row.innerHTML = `
+                    <td>${item.toolno || ''}</td>
+                    <td>${item.toolname || ''}</td>
+                    <td>${item.posno || ''}</td>
+                    <td>${item.tepartno || ''}</td>
+                    <td>${item.tfrno || ''}</td>
+                    <td>${item.description || ''}</td>
+                    <td>${item.minqty !== undefined ? item.minqty : 0}</td>
+                    <td class="${qtyBalClass}">${item.qtybal !== undefined ? item.qtybal : 0}</td>
+                    <td>${item.type || ''}</td>
+                    <td>${item.received || ''}</td>
+                    <td>${formatDateOnly(item.indate)}</td>
+                    <td>${item.qtyin !== undefined ? item.qtyin : 0}</td>
+                    <td>${item.givento || ''}</td>
+                    <td>${formatDateOnly(item.outdate)}</td>
+                    <td>${item.qtyout !== undefined ? item.qtyout : 0}</td>
+                `;
+            });
+        }
+
+        function clearMainForm() {
+            toolNoInput.value = '';
+            toolNameInput.value = '';
+            posNoInput.value = '';
+            tePartNoInput.value = '';
+            tfrNoInput.value = '';
+            descriptionInput.value = '';
+            minQtyInput.value = '';
+            qtyBalInput.value = '';
+            typeInput.value = '';
+            receivedInput.value = '';
+            inDateInput.value = '';
+            qtyInInput.value = '';
+        }
+
+        function clearOutForm() {
+            outToolNoInput.value = '';
+            outGivenToInput.value = '';
+            outOutDateInput.value = '';
+            outQtyOutInput.value = '';
+        }
+
+        
+        function setMainFormLoading(isLoading) {
+            submitButton.disabled = isLoading;
+            submitButtonText.style.display = isLoading ? 'none' : 'inline';
+            submitButtonLoader.style.display = isLoading ? 'inline-block' : 'none';
+        }
+
+        function setOutFormLoading(isLoading) {
+            processOutButton.disabled = isLoading;
+            outButtonText.style.display = isLoading ? 'none' : 'inline';
+            outButtonLoader.style.display = isLoading ? 'inline-block' : 'none';
+        }
+
+        function readFromGoogleSheet() {
+            console.log("Fetching inventory data...");
+            
+            if (typeof google === 'undefined' || !google.script) {
+                console.warn("Google Apps Script environment not detected. Cannot fetch live data.");
+                inventoryTableBody.innerHTML = `<tr><td colspan="15" class="text-center py-4 text-gray-500">Google Apps Script environment not detected. Data cannot be loaded.</td></tr>`;
+                return;
+            }
+
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    console.log("Inventory fetch success:", result);
+                    if (result && result.status === 'success') {
+                        inventoryData = result.data || [];
+                        renderInventory();
+                        showMessage("Inventory loaded successfully.");
+                    } else {
+                        showMessage(`Error loading inventory: ${result.message || 'Unknown error'}`, true);
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    console.error("Failed to load inventory:", error);
+                    showMessage("Failed to load inventory. Check console for details.", true);
+                })
+                .readInventoryData(); 
+        }
+
+        function sendProcessToolRequest(itemData) {
+            console.log("Sending process tool request:", itemData);
+            
+            if (typeof google === 'undefined' || !google.script) {
+                console.warn("Google Apps Script environment not detected.");
+                showMessage("Google Apps Script environment not available for testing.", true);
+                setMainFormLoading(false);
+                return;
+            }
+
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    console.log("Process tool success:", result);
+                    setMainFormLoading(false);
+                    if (result && result.status === 'success') {
+                        showMessage(result.message);
+                        readFromGoogleSheet(); 
+                        clearMainForm();
+                    } else {
+                        showMessage(`Error processing tool: ${result.message || 'Unknown error'}`, true);
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    console.error("Error processing tool:", error);
+                    setMainFormLoading(false);
+                    showMessage("Failed to process tool. Check console for details.", true);
+                })
+                .processToolWrapper(itemData);
+        }
+
+        function sendProcessOutRequest(transactionData) {
+            console.log("Sending process out request:", transactionData);
+            
+            if (typeof google === 'undefined' || !google.script) {
+                console.warn("Google Apps Script environment not detected.");
+                showMessage("Google Apps Script environment not available for testing.", true);
+                setOutFormLoading(false);
+                return;
+            }
+
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    console.log("Process out success:", result);
+                    setOutFormLoading(false);
+                    if (result && result.status === 'success') {
+                        showMessage(result.message);
+                        readFromGoogleSheet(); 
+                        clearOutForm();
+                    } else {
+                        showMessage(`Error processing out/removal: ${result.message || 'Unknown error'}`, true);
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    console.error("Error processing out/removal:", error);
+                    setOutFormLoading(false);
+                    showMessage("Failed to process out/removal. Check console for details.", true);
+                })
+                .processOutWrapper(transactionData); 
+        }
+
+        inventoryForm.addEventListener('submit', function(e) {
+            e.preventDefault(); 
+
+            const toolNo = toolNoInput.value.trim();
+            const toolName = toolNameInput.value.trim();
+            const qtyIn = parseFloat(qtyInInput.value) || 0; 
+
+            if (!toolNo) {
+                showMessage("Tool No. is required.", true);
+                return;
+            }
+
+            const toolExists = inventoryData.some(item => item.toolno === toolNo);
+            if (!toolName && !toolExists) {
+                showMessage("Tool Name is required for new tools.", true);
+                return;
+            }
+
+            const itemData = {
+                toolNo: toolNo,
+                toolName: toolName,
+                posNo: posNoInput.value.trim(),
+                tePartNo: tePartNoInput.value.trim(),
+                tfrNo: tfrNoInput.value.trim(),
+                description: descriptionInput.value.trim(),
+                minQty: parseInt(minQtyInput.value) || '', 
+                type: typeInput.value.trim(),
+                received: receivedInput.value.trim(),
+                inDate: inDateInput.value, // YYYY-MM-DD string
+                qtyIn: qtyIn,
+            };
+
+            setMainFormLoading(true); 
+            sendProcessToolRequest(itemData);
+        });
+
+        processOutButton.addEventListener('click', async function() {
+            const toolNo = outToolNoInput.value.trim();
+            const givenTo = outGivenToInput.value.trim();
+            const outDate = outOutDateInput.value;
+            const qtyOutValue = outQtyOutInput.value.trim(); 
+    
+            if (!toolNo) {
+              showMessage("Please enter a Tool No. for this transaction.", true);
+              return;
+            }
+
+
+           console.log("Searching for tool:", toolNo);
+           console.log("Available tools:", inventoryData.map(item => ({ toolno: item.toolno, type: typeof item.toolno })));
+
+
+          const existingTool = inventoryData.find(item => {
+            const itemToolNo = String(item.toolno || '').trim();
+            const searchToolNo = String(toolNo).trim();
+        
+            if (itemToolNo === searchToolNo) return true;
+        
+            if (itemToolNo.toLowerCase() === searchToolNo.toLowerCase()) return true;
+        
+            const itemAsNum = parseFloat(itemToolNo);
+            const searchAsNum = parseFloat(searchToolNo);
+            if (!isNaN(itemAsNum) && !isNaN(searchAsNum) && itemAsNum === searchAsNum) return true;
+        
+            return false;
+          });
+
+         if (!existingTool) {
+          const availableToolNos = inventoryData.map(item => String(item.toolno || '').trim()).filter(t => t);
+          const similarTools = availableToolNos.filter(t => 
+            t.toLowerCase().includes(toolNo.toLowerCase()) || 
+            toolNo.toLowerCase().includes(t.toLowerCase())
+          );
+        
+          let errorMessage = `Tool "${toolNo}" not found in inventory.`;
+          if (similarTools.length > 0) {
+            errorMessage += ` Did you mean: ${similarTools.slice(0, 3).join(', ')}?`;
+          }
+          console.log("Available tool numbers:", availableToolNos);
+          showMessage(errorMessage, true);
+          return;
+          }
+
+          let qtyOut = null; // Will be the numeric quantity to process out
+          let isCompleteRemoval = false;
+    
+          if (qtyOutValue === '') {
+            isCompleteRemoval = true;
+          } else {
+            qtyOut = parseFloat(qtyOutValue);
+          if (isNaN(qtyOut) || qtyOut <= 0) {
+            showMessage("Qty Out must be a positive number or leave blank for complete removal.", true);
+            return;
+          }
+        
+          const currentBalance = parseFloat(existingTool.qtybal) || 0;
+          if (qtyOut > currentBalance) {
+            showMessage(`Cannot take out ${qtyOut} of "${toolNo}". Only ${currentBalance} available in balance.`, true);
+            return;
+          }
+        }
+
+    let confirmMessage;
+    if (isCompleteRemoval) {
+        confirmMessage = `Are you sure you want to remove tool "${existingTool.toolno}" completely from inventory? (Current balance: ${existingTool.qtybal || 0})`;
+    } else {
+        confirmMessage = `Are you sure you want to reduce quantity of tool "${existingTool.toolno}" by ${qtyOut}?`;
+    }
+
+    const confirmed = await showConfirmationModal(confirmMessage);
+    if (!confirmed) {
+        showMessage("Transaction cancelled.", false); // User cancelled
+        return;
+    }
+
+    const transactionData = { 
+      toolNo: String(existingTool.toolno || '').trim(), // Convert to string first, then trim
+      givenTo: givenTo, 
+      outDate: outDate, 
+      qtyOut: qtyOutValue,
+      isCompleteRemoval: isCompleteRemoval
+    };
+
+    setOutFormLoading(true); // Show loading spinner
+    sendProcessOutRequest(transactionData);
+        });
+
+        // Initial load: Fetch and render inventory data
+        document.addEventListener('DOMContentLoaded', function() {
+            readFromGoogleSheet();
+        });
+    </script>
+</body>
+</html>
