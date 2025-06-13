@@ -9,7 +9,6 @@ A web-based inventory management system built with HTML, CSS, JavaScript, and Go
 - **Process Tool Transactions**: Track when tools are given out or returned
 - **Real-time Data**: Direct integration with Google Sheets for live data sync
 - **Low Stock Alerts**: Visual indicators when tool quantities fall below minimum levels
-- **Responsive Design**: Works on desktop, tablet, and mobile devices
 - **Confirmation Dialogs**: Safety prompts for critical operations like tool removal
 
 
